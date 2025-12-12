@@ -14,6 +14,21 @@ lastUpdate:{
     type: Number,
     require: true,
     dafault:0
+},
+chamber1:{
+    type:Number,
+    require: true,
+    default:0
+},
+chamber2:{
+    type:Number,
+    require: true,
+    default:0
+},
+chamber2:{
+    type:Number,
+    require: true,
+    default:0
 }
 
 });
