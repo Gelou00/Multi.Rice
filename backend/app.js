@@ -4,6 +4,7 @@ import { config as dotenvConfig } from 'dotenv';
 import fs from 'fs';
 import deviceRouter from './routers/device.routers.js';
 import Device  from './models/device.model.js';
+import checkOfflineDevices from './functions/checkOfflineDevices.js';
 
 const app = express();
 app.use(express.json());
@@ -22,6 +23,8 @@ app.use("/devices",deviceRouter);
 app.get("/", (req, res) =>{
     res.json({message: "Server is working!"})
 });
+
+setInterval: 30000;
 
 app.listen(PORT, ()=>{
     dbConnection();

@@ -1,10 +1,11 @@
 import express from 'express';
 
-import {registerNewDevice, getDevices} from '../controller/device.controller.js';
+import { registerNewDevice, getDevices, deviceOnline } from '../controller/device.controller.js';
 
-const router = express.Router();
+const router= express.Router();
 
 router.post("/register", registerNewDevice);
-router.get("/get", getDevices)
+router.get("/get",getDevices);
+router.post("/online", deviceOnline);
 
 export default router;
