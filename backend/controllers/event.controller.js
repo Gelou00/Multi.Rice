@@ -2,8 +2,6 @@ import Device from "../models/device.model.js";
 import Event from '../models/event.model.js';
 import mongoose from "mongoose";
 
-
-<<<<<<< HEAD
 export const submitData = async(req, res)=>{
     if(!req.body){
         return res.status(400).json({success: false, message: "Invalid values!"});
@@ -75,56 +73,6 @@ export const submitData = async(req, res)=>{
     
     return res;
 }
-=======
-export const submitData = async (req, res) => {
-    if (!req.body) {
-        return res.status(400).json({ success: false, message: "Invalid values!" });
-    }
-
-    const deviceID = req.body.deviceID;
-    const ultrasonic1 = req.body.ultrasonic1 ?? 0;
-    const ultrasonic2 = req.body.ultrasonic2 ?? 0;
-    const ultrasonic3 = req.body.ultrasonic3 ?? 0;
-
-    if (!deviceID) {
-        return res.status(400).json({ success: false, message: "Invalid Device ID!" });
-    }
-
-    const session = await mongoose.startSession();
-    try {
-        // Find the device and its owner
-        const onRecordDevice = await Device.findOne({ deviceID }).populate("owner");
-        if (!onRecordDevice) {
-            return res.status(404).json({ success: false, message: "Device not found!" });
-        }
-
-        if (!onRecordDevice.owner) {
-            return res.status(400).json({ success: false, message: "Device owner not found!" });
-        }
-
-        session.startTransaction();
-
-        const newEvent = new Event({
-            device: onRecordDevice._id,
-            owner: onRecordDevice.owner._id,
-            ultrasonic1,
-            ultrasonic2,
-            ultrasonic3
-        });
-
-        await newEvent.save({ session });
-
-        await session.commitTransaction();
-        res.status(200).json({ success: true, message: "Data submission successfully saved!" });
-    } catch (error) {
-        await session.abortTransaction();
-        console.error("Error in saving Data from device! - " + error.message);
-        res.status(500).json({ success: false, message: "Server Error" });
-    } finally {
-        await session.endSession();
-    }
-};
->>>>>>> 994538b5ffb4d4c2c2feb029fef1a3f2a01b1060
 
 export const getSensorReadingRecords = async(req, res) =>{
     if(!req.body){

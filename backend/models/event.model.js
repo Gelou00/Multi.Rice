@@ -21,30 +21,7 @@ const EventSchema = new mongoose.Schema({
         required: true,
         default: 'Data Submission'
     },
-<<<<<<< HEAD
-    temperature:{
-        type: Number,
-        required: true,
-        default: 0
-    },
-    humidity:{
-        type: Number,
-        required: true,
-        default: 0
-    },
-    tankLevel:{
-        type: Number,
-        default: 0
-    },
-    isRaining:{
-        type: Boolean,
-        default: false
-    },
-    isIrrigating:{
-        type: Boolean,
-        default: false
-    }
-=======
+
 owner:{
         type: mongoose.Types.ObjectId,
         ref: 'User',
@@ -70,7 +47,7 @@ ultrasonic3:{
     default: 0
 
 },
->>>>>>> 994538b5ffb4d4c2c2feb029fef1a3f2a01b1060
+
 });
 
 const Event=mongoose.model('Event', EventSchema);
