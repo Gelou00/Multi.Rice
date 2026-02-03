@@ -152,11 +152,6 @@ export const deviceOnline = async(req, res) =>{
     const deviceID =  req.body.deviceID;
     var temperature= req.body.temperature;
     var humidity=req.body.humidity;
-<<<<<<< HEAD
-    var tankLevel=req.body.tankLevel;
-    var isRaining=req.body.isRaining;
-    var isIrrigating=req.body.isIrrigating;
-=======
     var reservoirLevel=req.body.reservoirLevel;
     var soilMoisture1=req.body.soilMoisture1;
     var soilMoisture2=req.body.soilMoisture2;
@@ -164,7 +159,6 @@ export const deviceOnline = async(req, res) =>{
     const waterLevel1=req.body.waterLevel1;
     const waterLevel2=req.body.waterLevel2;
     const waterLevel3=req.body.waterLevel3;
->>>>>>> 994538b5ffb4d4c2c2feb029fef1a3f2a01b1060
     
     if(!deviceID){
         return res.status(200).json({success: false, message: "Invalid Device ID!"});
@@ -178,10 +172,6 @@ export const deviceOnline = async(req, res) =>{
         humidity=0;
     }
 
-<<<<<<< HEAD
-    if(!tankLevel){
-        tankLevel=0;
-=======
     if(!reservoirLevel){
         reservoirLevel='LOW';
     }
@@ -196,7 +186,6 @@ export const deviceOnline = async(req, res) =>{
 
     if(typeof soilMoisture3 !== "boolean"){
         soilMoisture3=false;
->>>>>>> 994538b5ffb4d4c2c2feb029fef1a3f2a01b1060
     }
 
     const session = await mongoose.startSession();
@@ -212,19 +201,6 @@ export const deviceOnline = async(req, res) =>{
             device.lastUpdate=Date.now();
             device.temperature=temperature;
             device.humidity=humidity;
-<<<<<<< HEAD
-            device.tankLevel=tankLevel;
-            if(isRaining>0){
-                device.isRaining=true;
-            }else{
-                device.isRaining=false;
-            }
-            if(isIrrigating>0){
-                device.isIrrigating=true;       
-            }else{
-                device.isIrrigating=false;
-            }
-=======
             device.reservoirLevel=reservoirLevel;
             device.soilMoisture1=soilMoisture1;
             device.soilMoisture2=soilMoisture2;
@@ -232,7 +208,6 @@ export const deviceOnline = async(req, res) =>{
             device.waterLevel1=waterLevel1;
             device.waterLevel2=waterLevel2;
             device.waterLevel3=waterLevel3;
->>>>>>> 994538b5ffb4d4c2c2feb029fef1a3f2a01b1060
 
             const updatedDevice = await Device.findByIdAndUpdate(device._id, device, {runValidators: true, new: true, session});
             await session.commitTransaction();
