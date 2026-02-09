@@ -1,7 +1,8 @@
-import { BackHandler } from "react-native";
+import { BackHandler, ScrollView } from "react-native";
 import { useFocusEffect } from "expo-router";
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, SafeAreaView, Dimensions, Image } from "react-native";
+import { View, Text, FlatList, SafeAreaView, TouchableOpacity, Dimensions, Image } from "react-native";
+import { LineChart } from "react-native-chart-kit";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import axiosInstance from "../../axiosConfig.js";
 import loadingOverlay from "../components/LoadingOverlay";
@@ -14,42 +15,36 @@ const IrrigationDashboard = () => {
 
   const screenWidth = Dimensions.get("window").width;
 
-  // === RICE CONTAINER LEVELS (STATIC / LOCAL ONLY) ===
-  const [containers] = useState([
+  // === RICE CONTAINER LEVELS (PERCENT) ===
+  const [containers, setContainers] = useState([
     { id: 1, name: "Rice Container A", percent: 0 },
     { id: 2, name: "Rice Container B", percent: 0 },
     { id: 3, name: "Rice Container C", percent: 0 },
   ]);
 
   const getStatus = (percent) => {
-    if (percent <= 20) return { label: "CRITICAL", color: "text-red-500" };
+    if (percent <= 20) return { label: "EMPTY", color: "text-red-500" };
     if (percent <= 50) return { label: "LOW", color: "text-yellow-400" };
     return { label: "GOOD", color: "text-green-400" };
   };
 
-  // === BACKEND FETCH (DOES NOT TOUCH CONTAINERS) ===
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
+    setIsLoading(true);
+    const func = async () => {
       try {
-        const response = await axiosInstance.get(
-          "/event/temp-summary",
-          { withCredentials: true }
-        );
-
-        if (response?.data?.success) {
-          setData(response.data.data);
-        } else {
+        const response = await axiosInstance.get("/event/temp-summary", { withCredentials: true });
+        if (!response.data.success) {
           setData([]);
+        } else {
+          setData(response.data.data);
         }
       } catch (error) {
         console.error("Data retrieval error:", error.message);
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    fetchData();
+    func();
+    setIsLoading(false);
   }, []);
 
   useFocusEffect(
@@ -70,7 +65,7 @@ const IrrigationDashboard = () => {
       <View className="flex flex-row items-center gap-5 px-5 py-4 bg-black border-b border-yellow-600 pt-10">
         <Image source={logo} style={{ width: 50, height: 50 }} />
         <Text className="text-2xl font-extrabold text-yellow-500">
-          Container Level
+         Container Level
         </Text>
       </View>
 
@@ -135,7 +130,11 @@ const IrrigationDashboard = () => {
 
                 {/* MESSAGE */}
                 <Text className="text-gray-200 text-sm mt-2">
-                  Immediate refill required
+                  {item.percent <= 20
+                    ? "Immediate refill required"
+                    : item.percent <= 50
+                    ? "Plan refill soon"
+                    : "Sufficient rice available"}
                 </Text>
               </View>
             );
