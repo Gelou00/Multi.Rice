@@ -4,10 +4,10 @@
 #include <WiFiClientSecure.h>
 
 
-const char* WIFI_SSID = "Galaxy A54";
-const char* WIFI_PASS = "qwerty123";
+const char* WIFI_SSID = "+_+";
+const char* WIFI_PASS = "11042003";
 
-const char* API_URL = "https://xlgjn5k1-5000.asse.devtunnels.ms/api";
+const char* API_URL = "https://72qngt00-5000.asse.devtunnels.ms/api";
 
 const int JSON_REQUEST_SIZE = 512 + (64 * 15);
 
