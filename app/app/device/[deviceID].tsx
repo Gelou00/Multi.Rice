@@ -168,9 +168,9 @@ const DeviceDetails = () => {
             <View className="flex-row">
               <MetricCard
                 title="Rice Level"
-                value={cmToPercent(device.ultrasonic1)}
+                value={cmToPercent(device.servomotor1)}
                 unit="%"
-                iconName="sack"
+                iconName="servo"
                 color="bg-cyan-50"
               />
             </View>
@@ -184,9 +184,9 @@ const DeviceDetails = () => {
             <View className="flex-row">
               <MetricCard
                 title="Rice Level"
-                value={cmToPercent(device.ultrasonic2)}
+                value={cmToPercent(device.servomotor2)}
                 unit="%"
-                iconName="sack"
+                iconName="servo"
                 color="bg-cyan-50"
               />
             </View>
@@ -200,9 +200,9 @@ const DeviceDetails = () => {
             <View className="flex-row">
               <MetricCard
                 title="Rice Level"
-                value={cmToPercent(device.ultrasonic3)}
+                value={cmToPercent(device.servomotor3)}
                 unit="%"
-                iconName="sack"
+                iconName="servo"
                 color="bg-cyan-50"
               />
             </View>
