@@ -1,230 +1,301 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useIsFocused } from '@react-navigation/native';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Modal,
-  Image
-} from "react-native";
-import { MaterialIcons, AntDesign } from '@expo/vector-icons';
+import { View, Text, FlatList, Image, Animated, Easing } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import loadingOverlay from "../components/LoadingOverlay";
 import axiosInstance from "@/axiosConfig";
-import Toast from "react-native-toast-message";
-import DeviceCard from "../components/DeviceCard";
 import logo from "../../assets/images/logo.png";
 
 const DevicesTab = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [devices, setDevices] = useState([]);
-  const [showNewDeviceModal, setShowNewDeviceModal] = useState(false);
-  const [newDeviceID, setNewDeviceID] = useState("");
+  const [servos, setServos] = useState([0, 0, 0]);
+  const [servoStatus, setServoStatus] = useState([false, false, false]);
 
   const isFocused = useIsFocused();
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      setIsLoading(true);
-      await reloadData();
-      setIsLoading(false);
-    }, 20000);
+  const rotations = [
+    useRef(new Animated.Value(0)).current,
+    useRef(new Animated.Value(0)).current,
+    useRef(new Animated.Value(0)).current,
+  ];
 
-    return () => clearInterval(interval);
-  }, []);
+  const shakes = [
+    useRef(new Animated.Value(0)).current,
+    useRef(new Animated.Value(0)).current,
+    useRef(new Animated.Value(0)).current,
+  ];
 
-  useEffect(() => {
-    if (isFocused) {
-      (async () => {
-        setIsLoading(true);
-        await reloadData();
-        setIsLoading(false);
-      })();
-    }
-  }, [isFocused]);
+  // ✅ NEW: indicator animations
+  const indicatorAnim = [
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+  ];
 
-  const pressEventHandler = async (device) => {
-    router.push({
-      pathname: "/device/[deviceID]",
-      params: { deviceID: device.deviceID },
-    });
+  const startOnlinePulse = (anim) => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  };
+
+  const startOfflineBlink = (anim) => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 0.1, duration: 300, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ])
+    ).start();
+  };
+
+  const startCriticalPulse = (anim) => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 0.2, duration: 200, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ])
+    ).start();
+  };
+
+  const stopIndicator = (anim) => {
+    anim.stopAnimation();
+    anim.setValue(1);
+  };
+
+  const startRotation = (anim) => {
+    anim.setValue(0);
+    Animated.loop(
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 2000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  };
+
+  const stopRotation = (anim) => {
+    anim.stopAnimation();
+    anim.setValue(0);
+  };
+
+  const startShake = (anim) => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 5, duration: 100, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: -5, duration: 100, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 100, useNativeDriver: true }),
+      ])
+    ).start();
+  };
+
+  const stopShake = (anim) => {
+    anim.stopAnimation();
+    anim.setValue(0);
   };
 
   const reloadData = async () => {
     try {
-      const response = await axiosInstance.get(
-        "/device/get-my-devices",
-        { withCredentials: true }
-      );
+      const response = await axiosInstance.get("/event/temp-summary");
 
       if (!response.data.success) {
-        Toast.show({
-          type: "error",
-          text1: "❌ Error while retrieving your Devices!",
-          text2: response.data.message
-        });
-        setDevices([]);
+        setServos([0, 0, 0]);
       } else {
-        const updatedDevices = response.data.data.map((device) => ({
-          ...device,
-          /* ✅ FIX: ALWAYS ENSURE VALID TIMESTAMP */
-          lastUpdate: device.lastUpdate ? device.lastUpdate : Date.now(),
-        }));
+        const latest = response.data.data[0];
 
-        setDevices(updatedDevices);
+        const newServos = latest.servos || [0, 0, 0];
+        const newStatus = latest.servoStatus || [false, false, false];
+
+        setServos(newServos);
+        setServoStatus(newStatus);
+
+        newServos.forEach((percent, i) => {
+          const isOnline = newStatus[i];
+
+          // existing animations (UNCHANGED)
+          if (isOnline) startRotation(rotations[i]);
+          else stopRotation(rotations[i]);
+
+          if (isOnline && percent <= 30) startShake(shakes[i]);
+          else stopShake(shakes[i]);
+
+          // ✅ NEW: indicator animation logic
+          stopIndicator(indicatorAnim[i]);
+
+          if (!isOnline) {
+            startOfflineBlink(indicatorAnim[i]);
+          } else if (percent <= 30) {
+            startCriticalPulse(indicatorAnim[i]);
+          } else {
+            startOnlinePulse(indicatorAnim[i]);
+          }
+        });
       }
     } catch (error) {
-      Toast.show({
-        type: "error",
-        text1: "❌ Error while retrieving your Devices!",
-        text2: error.message
-      });
-      setDevices([]);
+      console.log(error);
     }
   };
 
-  const handleAddDeviceEvent = async () => {
-    setShowNewDeviceModal(true);
+  useEffect(() => {
+    reloadData();
+    const interval = setInterval(reloadData, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getStatus = (percent, isOnline) => {
+    if (!isOnline) return { label: "OFFLINE", color: "#9ca3af" };
+    if (percent <= 30) return { label: "CRITICAL", color: "#fb7185" };
+    if (percent <= 60) return { label: "WARNING", color: "#fbbf24" };
+    return { label: "GOOD", color: "#34d399" };
   };
 
-  const confirmAddNewDevice = async () => {
-    setShowNewDeviceModal(false);
-    setIsLoading(true);
-
-    try {
-      const data = { deviceID: newDeviceID };
-      const response = await axiosInstance.post(
-        "/device/register",
-        data,
-        { withCredentials: true }
-      );
-
-      if (!response.data.success) {
-        Toast.show({
-          type: "error",
-          text1: "❌ Device Registration Failed!",
-          text2: response.data.message
-        });
-        setShowNewDeviceModal(true);
-      } else {
-        setNewDeviceID("");
-        await reloadData();
-      }
-    } catch (error) {
-      Toast.show({
-        type: "error",
-        text1: "❌ Error while retrieving your User Account!",
-        text2: error.message
-      });
-      setNewDeviceID("");
-    }
-
-    setIsLoading(false);
-  };
-
-  const cancelAddNewDevice = () => {
-    setNewDeviceID("");
-    setShowNewDeviceModal(false);
-  };
+  const servoData = [
+    { id: 1, name: "Servo A", percent: servos[0], online: servoStatus[0], rot: rotations[0], shake: shakes[0] },
+    { id: 2, name: "Servo B", percent: servos[1], online: servoStatus[1], rot: rotations[1], shake: shakes[1] },
+    { id: 3, name: "Servo C", percent: servos[2], online: servoStatus[2], rot: rotations[2], shake: shakes[2] },
+  ];
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
       {isLoading && loadingOverlay()}
 
       {/* HEADER */}
-      <View className="flex flex-row items-center px-5 py-4 bg-black border-b border-yellow-600 pt-10">
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 20,
+          padding: 20,
+          paddingTop: 10,
+          borderBottomWidth: 1,
+          borderColor: "rgba(255,255,255,0.1)",
+        }}
+      >
         <Image source={logo} style={{ width: 50, height: 50 }} />
-        <Text className="text-3xl font-extrabold text-yellow-500 ml-4">
-          Servo
+        <Text
+          style={{
+            fontSize: 22,
+            fontWeight: "800",
+            color: "#e8eefc",
+            marginLeft: 12,
+          }}
+        >
+          Servo Dashboard
         </Text>
       </View>
 
-      {/* ADD DEVICE BUTTON */}
-      <View className="self-end my-4">
-        <TouchableOpacity
-          onPress={handleAddDeviceEvent}
-          className="flex flex-row gap-2 bg-yellow-500 py-3 px-4 rounded-lg mx-6"
-        >
-          <MaterialIcons name="add-circle" size={18} color="black" />
-          <Text className="text-black font-semibold text-sm">
-            Add Device
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <FlatList
+        data={servoData}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{ padding: 16 }}
+        renderItem={({ item, index }) => {
+          const status = getStatus(item.percent, item.online);
 
-      {/* DEVICE LIST */}
-      {devices.length > 0 && (
-        <FlatList
-          data={devices}
-          keyExtractor={(item) => item.deviceID}
-          renderItem={({ item }) => (
-            <DeviceCard
-              device={item}
-              pressEventHandler={pressEventHandler}
-            />
-          )}
-          contentContainerStyle={{ paddingBottom: 16 }}
-        />
-      )}
+          const rotate = item.rot.interpolate({
+            inputRange: [0, 1],
+            outputRange: ["0deg", "360deg"],
+          });
 
-      {/* ADD DEVICE MODAL */}
-      <Modal
-        visible={showNewDeviceModal}
-        transparent
-        animationType="fade"
-        onRequestClose={cancelAddNewDevice}
-      >
-        <View className="flex-1 justify-center items-center bg-black/60">
-          <View className="bg-zinc-900 rounded-lg p-6 w-80 border border-yellow-600">
-            <Text className="text-lg font-bold text-center mb-4 text-yellow-400">
-              Add New Device
-            </Text>
+          return (
+            <View
+              style={{
+                backgroundColor: "rgba(255,255,255,0.05)",
+                borderRadius: 40,
+                padding: 16,
+                marginBottom: 25,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.1)",
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                {/* LEFT */}
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Animated.View
+                    style={{
+                      transform: [
+                        { rotate },
+                        { translateX: item.shake }
+                      ],
+                    }}
+                  >
+                    <MaterialCommunityIcons name="cogs" size={24} color="#5eead4" />
+                  </Animated.View>
 
-            <Text className="text-center mb-6 text-gray-300">
-              Input the New Device ID to add it to your account
-            </Text>
+                  <Text
+                    style={{
+                      marginLeft: 10,
+                      color: "#e8eefc",
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+                </View>
 
-            <View className="flex-row mb-10">
-              <View className="border border-yellow-600 rounded-tl-lg rounded-bl-lg justify-center items-center px-2">
-                <AntDesign name="barcode" size={28} color="#D4AF37" />
+                {/* RIGHT */}
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text
+                    style={{
+                      color: status.color,
+                      fontWeight: "700",
+                      marginRight: 6,
+                    }}
+                  >
+                    {status.label}
+                  </Text>
+
+                  {/* ✅ ANIMATED INDICATOR */}
+                  <Animated.Text style={{ opacity: indicatorAnim[index] }}>
+                    {item.online ? "🟢" : "🔴"}
+                  </Animated.Text>
+                </View>
               </View>
 
-              <View className="flex-1 border border-yellow-600 border-l-0 rounded-lg px-4 py-1">
-                <TextInput
-                  value={newDeviceID}
-                  onChangeText={setNewDeviceID}
-                  placeholder="Device ID"
-                  placeholderTextColor="#9CA3AF"
-                  className="text-yellow-300"
+              <Text
+                style={{
+                  color: "#aab7df",
+                  marginTop: 10,
+                }}
+              >
+                {item.percent}% Durability
+              </Text>
+
+              {/* PROGRESS BAR */}
+              <View
+                style={{
+                  height: 10,
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  borderRadius: 999,
+                  marginTop: 8,
+                  overflow: "hidden",
+                }}
+              >
+                <View
+                  style={{
+                    width: `${item.percent}%`,
+                    height: "100%",
+                    backgroundColor: "#5eead4",
+                  }}
                 />
               </View>
-            </View>
 
-            <View className="flex-row justify-between">
-              <TouchableOpacity
-                onPress={cancelAddNewDevice}
-                className="bg-zinc-700 py-2 px-4 rounded-lg"
+              <Text
+                style={{
+                  color: "#aab7df",
+                  marginTop: 8,
+                  fontSize: 12,
+                }}
               >
-                <Text className="text-gray-200 font-semibold">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={confirmAddNewDevice}
-                className="bg-yellow-500 py-2 px-4 rounded-lg"
-              >
-                <Text className="text-black font-semibold">
-                  Submit
-                </Text>
-              </TouchableOpacity>
+                {item.online ? "Servo Online" : "Servo Offline"}
+              </Text>
             </View>
-          </View>
-        </View>
-      </Modal>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 };

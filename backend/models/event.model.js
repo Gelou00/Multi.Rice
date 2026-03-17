@@ -1,20 +1,21 @@
 import mongoose from 'mongoose';
 
-const types = ['Irrigation Activation', 'Data Submission', 'Seedling Sow', 'Seedling Ready'];
-const reservoirLevels = ['OK', 'LOW', 'FULL'];
-const waterLevels = ['OK', 'LOW', 'FULL']
+const types = ['Data Submission'];
 
 const EventSchema = new mongoose.Schema({
+    
     device:{
         type: mongoose.Types.ObjectId,
         ref: 'Device',
         required: true
     },
+
     eventDate:{
         type: Number,
         required: true,
         default: Date.now()
     },
+
     eventType:{
         type: String,
         enum: types,
@@ -22,34 +23,37 @@ const EventSchema = new mongoose.Schema({
         default: 'Data Submission'
     },
 
-owner:{
+    // ✅ KEEP (important for user filtering)
+    owner:{
         type: mongoose.Types.ObjectId,
         ref: 'User',
         required: true
-},
-ultrasonic1:{
+    },
 
-    type: Number,
-    required: true,
-    default: 0
-},
-ultrasonic2:{
+    // ===== ✅ ESP32 DATA =====
 
-    type: Number,
-    required: true,
-    default: 0
+    containers:{
+        type: [Number],
+        default: [0,0,0]
+    },
 
-},
-ultrasonic3:{
+    servos:{
+        type: [Number],
+        default: [0,0,0]
+    },
 
-    type: Number,
-    required: true,
-    default: 0
+    ultrasonicStatus:{
+        type: [Boolean],
+        default: [false,false,false]
+    },
 
-},
+    servoStatus:{
+        type: [Boolean],
+        default: [false,false,false]
+    }
 
 });
 
-const Event=mongoose.model('Event', EventSchema);
+const Event = mongoose.model('Event', EventSchema);
 
 export default Event;
