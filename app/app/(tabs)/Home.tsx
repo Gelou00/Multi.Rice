@@ -8,14 +8,35 @@ import axiosInstance from "../../axiosConfig.js";
 import loadingOverlay from "../components/LoadingOverlay";
 import logo from "../../assets/images/logo.png";
 
+/* ✅ UPDATED: PH TIME + 12-HOUR FORMAT */
+const formatDateTime = (timestamp) => {
+  if (!timestamp) return "No Data";
+
+  const date = new Date(timestamp);
+
+  const formatted = date.toLocaleString("en-US", {
+    timeZone: "Asia/Manila",
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+
+  // convert "MM/DD/YY, HH:MM AM" → "MM-DD-YY HH:MM AM"
+  return formatted.replace(",", "").replace(/\//g, "-");
+};
+
 const IrrigationDashboard = () => {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [width, setWidth] = useState(0);
 
+  const [lastUpdate, setLastUpdate] = useState(null);
+
   const screenWidth = Dimensions.get("window").width;
 
-  // === RICE CONTAINER LEVELS (PERCENT) ===
   const [containers, setContainers] = useState([
     { id: 1, name: "Rice Container A", percent: 0 },
     { id: 2, name: "Rice Container B", percent: 0 },
@@ -30,13 +51,18 @@ const IrrigationDashboard = () => {
 
   useEffect(() => {
     setIsLoading(true);
+
     const func = async () => {
       try {
         const response = await axiosInstance.get("/event/temp-summary", { withCredentials: true });
+
         if (!response.data.success) {
           setData([]);
         } else {
           setData(response.data.data);
+
+          const latest = response.data.data?.[0]?.lastUpdate || Date.now();
+          setLastUpdate(latest);
         }
       } catch (error) {
         console.error("Data retrieval error:", error.message);
@@ -45,6 +71,25 @@ const IrrigationDashboard = () => {
 
     func();
     setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await axiosInstance.get("/event/temp-summary", { withCredentials: true });
+
+        if (response.data.success) {
+          setData(response.data.data);
+
+          const latest = response.data.data?.[0]?.lastUpdate || Date.now();
+          setLastUpdate(latest);
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }, 20000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useFocusEffect(
@@ -61,7 +106,6 @@ const IrrigationDashboard = () => {
     <SafeAreaView className="flex-1 bg-black">
       {isLoading && loadingOverlay()}
 
-      {/* HEADER */}
       <View className="flex flex-row items-center gap-5 px-5 py-4 bg-black border-b border-yellow-600 pt-10">
         <Image source={logo} style={{ width: 50, height: 50 }} />
         <Text className="text-2xl font-extrabold text-yellow-500">
@@ -69,12 +113,10 @@ const IrrigationDashboard = () => {
         </Text>
       </View>
 
-      {/* MAIN CONTENT */}
       <View
         className="flex flex-col py-6 mx-5 my-5 bg-black border border-yellow-600 rounded-lg"
         onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       >
-        {/* TITLE */}
         <View className="px-5 mb-3">
           <Text className="text-yellow-500 text-2xl font-extrabold">
             Rice Availability Dashboard
@@ -82,12 +124,13 @@ const IrrigationDashboard = () => {
           <Text className="font-bold text-gray-200 mt-1">
             Monitor rice levels for community distribution
           </Text>
+
+          {/* ✅ NOW 12-HOUR FORMAT */}
           <Text className="font-bold text-gray-200 text-sm mt-1">
-            Last updated: {new Date().toLocaleTimeString()}
+            Last updated: {formatDateTime(lastUpdate)}
           </Text>
         </View>
 
-        {/* CONTAINERS */}
         <View className="w-full px-5 mt-4">
           {containers.map((item) => {
             const status = getStatus(item.percent);
@@ -97,7 +140,6 @@ const IrrigationDashboard = () => {
                 key={item.id}
                 className="bg-zinc-900 rounded-lg p-4 mb-4 border border-yellow-600"
               >
-                {/* HEADER */}
                 <View className="flex-row justify-between items-center mb-2">
                   <View className="flex-row items-center gap-2">
                     <MaterialCommunityIcons
@@ -115,12 +157,10 @@ const IrrigationDashboard = () => {
                   </Text>
                 </View>
 
-                {/* PERCENT */}
                 <Text className="text-yellow-500 font-bold mb-2">
                   {item.percent}% remaining
                 </Text>
 
-                {/* PROGRESS BAR */}
                 <View className="w-full h-4 bg-zinc-700 rounded-full overflow-hidden">
                   <View
                     style={{ width: `${item.percent}%` }}
@@ -128,7 +168,6 @@ const IrrigationDashboard = () => {
                   />
                 </View>
 
-                {/* MESSAGE */}
                 <Text className="text-gray-200 text-sm mt-2">
                   {item.percent <= 20
                     ? "Immediate refill required"

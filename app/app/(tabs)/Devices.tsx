@@ -68,7 +68,13 @@ const DevicesTab = () => {
         });
         setDevices([]);
       } else {
-        setDevices(response.data.data);
+        const updatedDevices = response.data.data.map((device) => ({
+          ...device,
+          /* ✅ FIX: ALWAYS ENSURE VALID TIMESTAMP */
+          lastUpdate: device.lastUpdate ? device.lastUpdate : Date.now(),
+        }));
+
+        setDevices(updatedDevices);
       }
     } catch (error) {
       Toast.show({
@@ -132,7 +138,7 @@ const DevicesTab = () => {
       <View className="flex flex-row items-center px-5 py-4 bg-black border-b border-yellow-600 pt-10">
         <Image source={logo} style={{ width: 50, height: 50 }} />
         <Text className="text-3xl font-extrabold text-yellow-500 ml-4">
-          Devices
+          Servo
         </Text>
       </View>
 

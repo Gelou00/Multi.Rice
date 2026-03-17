@@ -170,7 +170,7 @@ const DeviceDetails = () => {
                 title="Servo Usage"
                 value={cmToPercent(device.servomotor1)}
                 unit="%"
-                iconName="servo"
+                iconName="cog"
                 color="bg-cyan-50"
               />
             </View>
@@ -186,7 +186,7 @@ const DeviceDetails = () => {
                 title="Servo Usage"
                 value={cmToPercent(device.servomotor2)}
                 unit="%"
-                iconName="servo"
+                iconName="cog"
                 color="bg-cyan-50"
               />
             </View>
@@ -202,7 +202,7 @@ const DeviceDetails = () => {
                 title="Servo Usage"
                 value={cmToPercent(device.servomotor3)}
                 unit="%"
-                iconName="servo"
+                iconName="cog"
                 color="bg-cyan-50"
               />
             </View>

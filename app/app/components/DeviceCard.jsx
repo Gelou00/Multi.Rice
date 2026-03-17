@@ -1,31 +1,88 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { useRef, useEffect } from 'react';
 import { MaterialCommunityIcons, Octicons } from '@expo/vector-icons';
 
-/* ================= Rice Level Converter =================
-   Ultrasonic assumptions:
-   FULL  = 5 cm
-   EMPTY = 40 cm
-========================================================= */
+/* ================= DATE FORMAT FIX (PH TIME + 12H) ================= */
+const formatDate = (timestamp) => {
+  if (!timestamp || timestamp === 0) return "No Data";
+
+  const date = new Date(timestamp);
+
+  if (isNaN(date)) return "Invalid Date";
+
+  const formatted = date.toLocaleString("en-US", {
+    timeZone: "Asia/Manila",
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+
+  // convert "MM/DD/YY, HH:MM AM" → "MM-DD-YY HH:MM AM"
+  return formatted.replace(",", "").replace(/\//g, "-");
+};
+
+/* ================= Rice Level Converter ================= */
 const cmToPercent = (cm, min = 5, max = 40) => {
   if (cm <= min) return 100;
   if (cm >= max) return 0;
   return Math.round(((max - cm) / (max - min)) * 100);
 };
 
-/* ================= Metric Card ================= */
-const MetricCard = ({ title, value, unit, iconName }) => (
-  <View className="w-1/2 p-2">
-    <View className="flex-row items-center p-3 rounded-xl border border-yellow-600 bg-zinc-900">
-      <MaterialCommunityIcons name={iconName} size={24} color="#D4AF37" />
-      <View className="ml-3">
-        <Text className="text-lg font-bold text-yellow-500">
-          {value}{unit}
+const MetricCard = ({ title, value, unit, iconName }) => {
+  const percentage = isNaN(value) ? 0 : value;
+
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: percentage,
+      duration: 800,
+      useNativeDriver: false,
+    }).start();
+  }, [percentage]);
+
+  const width = progress.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
+
+  const getColor = (val) => {
+    if (val > 70) return '#22c55e';
+    if (val > 40) return '#eab308';
+    return '#ef4444';
+  };
+
+  const barColor = getColor(percentage);
+
+  return (
+    <View className="w-full p-2">
+      <View className="p-3 rounded-xl border border-yellow-600 bg-zinc-900">
+
+        <View className="flex-row items-center mb-2">
+          <MaterialCommunityIcons name={iconName} size={22} color="#D4AF37" />
+          <Text className="ml-2 text-sm text-gray-300">{title}</Text>
+        </View>
+
+        <Text className="text-lg font-bold mb-2" style={{ color: barColor }}>
+          {percentage}{unit}
         </Text>
-        <Text className="text-xs text-gray-300">{title}</Text>
+
+        <View className="w-full h-2 bg-zinc-700 rounded-full overflow-hidden">
+          <Animated.View
+            style={{
+              width,
+              height: '100%',
+              backgroundColor: barColor,
+            }}
+          />
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 /* ================= Device Card ================= */
 const DeviceCard = ({ device, pressEventHandler }) => {
@@ -42,7 +99,7 @@ const DeviceCard = ({ device, pressEventHandler }) => {
             {device.deviceID}
           </Text>
           <Text className="text-xs text-gray-300">
-            Last Update: {new Date(device.lastUpdate).toLocaleString()}
+            Last Update: {formatDate(device.lastUpdate)}
           </Text>
         </View>
 
@@ -63,7 +120,7 @@ const DeviceCard = ({ device, pressEventHandler }) => {
             title="Durability"
             value={cmToPercent(device.servo1)}
             unit="%"
-            iconName="servo"
+            iconName="cog"
           />
         </View>
       </View>
@@ -78,7 +135,7 @@ const DeviceCard = ({ device, pressEventHandler }) => {
             title="Durability"
             value={cmToPercent(device.servo2)}
             unit="%"
-            iconName="servo"
+            iconName="cog"
           />
         </View>
       </View>
@@ -93,7 +150,7 @@ const DeviceCard = ({ device, pressEventHandler }) => {
             title="Durability"
             value={cmToPercent(device.servo3)}
             unit="%"
-            iconName="servo"
+            iconName="cog"
           />
         </View>
       </View>
