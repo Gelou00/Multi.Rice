@@ -53,7 +53,7 @@ const startServer = async () => {
     await dbConnection();
 
     app.listen(PORT, () => {
-      console.log('server running on port ${PORT}');
+      console.log(`server running on port ${PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error.message);
