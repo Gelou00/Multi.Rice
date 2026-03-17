@@ -18,10 +18,10 @@ const DeviceSchema = new mongoose.Schema({
         default:0
     },
 
-    owner:{
-        type: mongoose.Types.ObjectId,
-        ref: 'User',
-        required: true
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: false
     },
 
     // Container Level (Ultrasonic Sensors)

@@ -9,21 +9,7 @@ import checkOfflineDevices from './functions/checkOfflineDevices.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
-const app = express();
-app.use(express.json());
-app.use(cookieParser());
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || origin === "null")
-      return callback(null, false);
-
-    return callback(null, origin);
-  },
-  credentials: true
-}));
-
-const PORT = process.env.PORT || 5000;
+// Load environment variables FIRST
 const secretPath =
   fs.existsSync('/etc/secrets/.env')
     ? '/etc/secrets/.env'
@@ -31,16 +17,48 @@ const secretPath =
 
 dotenvConfig({ path: secretPath });
 
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || origin === "null") {
+      return callback(null, false);
+    }
+
+    return callback(null, origin);
+  },
+  credentials: true
+}));
+
+const PORT = process.env.PORT || 5000;
+
 app.use("/api/device", deviceRouter);
 app.use("/api/user", userRouter);
 app.use("/api/event", eventRouter);
-app.get("/", (req, res)=>{
-    res.json({message: "Server is working!"})
+
+app.get("/", (req, res) => {
+  res.json({ message: "Server is working!" });
 });
 
 setInterval(checkOfflineDevices, 30000);
 
-app.listen(PORT, '0.0.0.0', ()=>{
-    dbConnection();
-    console.log("server started at http://localhost:"+PORT);
-});
+// Start server only after DB connects
+const startServer = async () => {
+  try {
+    console.log("Using env file:", secretPath);
+    console.log("MONGO_URI exists:", !!process.env.MONGO_URI);
+
+    await dbConnection();
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log("server started at http://localhost:" + PORT);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();

@@ -11,6 +11,8 @@ const DevicesTab = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [servos, setServos] = useState([0, 0, 0]);
   const [servoStatus, setServoStatus] = useState([false, false, false]);
+  const [lastUpdate, setLastUpdate] = useState(0);
+  const [deviceOnline, setDeviceOnline] = useState(false);
 
   const isFocused = useIsFocused();
 
@@ -26,7 +28,6 @@ const DevicesTab = () => {
     useRef(new Animated.Value(0)).current,
   ];
 
-  // ✅ NEW: indicator animations
   const indicatorAnim = [
     useRef(new Animated.Value(1)).current,
     useRef(new Animated.Value(1)).current,
@@ -97,14 +98,15 @@ const DevicesTab = () => {
     anim.setValue(0);
   };
 
+  // ✅ FIXED reloadData (ignore 502 errors)
   const reloadData = async () => {
     try {
       const response = await axiosInstance.get("/event/temp-summary");
 
-      if (!response.data.success) {
-        setServos([0, 0, 0]);
-      } else {
+      if (response?.data?.success && response.data.data.length > 0) {
         const latest = response.data.data[0];
+
+        setLastUpdate(latest.lastUpdate);
 
         const newServos = latest.servos || [0, 0, 0];
         const newStatus = latest.servoStatus || [false, false, false];
@@ -115,14 +117,12 @@ const DevicesTab = () => {
         newServos.forEach((percent, i) => {
           const isOnline = newStatus[i];
 
-          // existing animations (UNCHANGED)
           if (isOnline) startRotation(rotations[i]);
           else stopRotation(rotations[i]);
 
           if (isOnline && percent <= 30) startShake(shakes[i]);
           else stopShake(shakes[i]);
 
-          // ✅ NEW: indicator animation logic
           stopIndicator(indicatorAnim[i]);
 
           if (!isOnline) {
@@ -134,16 +134,52 @@ const DevicesTab = () => {
           }
         });
       }
+
     } catch (error) {
-      console.log(error);
+      // ❗ DO NOTHING (prevents flicker)
+      console.log("API ERROR (ignored):", error.message);
     }
   };
 
   useEffect(() => {
     reloadData();
+
     const interval = setInterval(reloadData, 20000);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+
+      rotations.forEach(anim => anim.stopAnimation());
+      shakes.forEach(anim => anim.stopAnimation());
+      indicatorAnim.forEach(anim => anim.stopAnimation());
+    };
   }, []);
+
+  // ✅ FIXED threshold (40s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!lastUpdate) return;
+
+      const now = Date.now();
+      const diff = now - lastUpdate;
+
+      if (diff > 40000) {
+        setDeviceOnline(false);
+      } else {
+        setDeviceOnline(true);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [lastUpdate]);
+
+  // ✅ KEEP your offline override
+  useEffect(() => {
+    if (!deviceOnline) {
+      setServos([0, 0, 0]);
+      setServoStatus([false, false, false]);
+    }
+  }, [deviceOnline]);
 
   const getStatus = (percent, isOnline) => {
     if (!isOnline) return { label: "OFFLINE", color: "#9ca3af" };
@@ -153,45 +189,49 @@ const DevicesTab = () => {
   };
 
   const servoData = [
-    { id: 1, name: "Servo A", percent: servos[0], online: servoStatus[0], rot: rotations[0], shake: shakes[0] },
-    { id: 2, name: "Servo B", percent: servos[1], online: servoStatus[1], rot: rotations[1], shake: shakes[1] },
-    { id: 3, name: "Servo C", percent: servos[2], online: servoStatus[2], rot: rotations[2], shake: shakes[2] },
+    { id: 1, name: "Servo A", percent: servos[0], online: deviceOnline ? servoStatus[0] : false, rot: rotations[0], shake: shakes[0] },
+    { id: 2, name: "Servo B", percent: servos[1], online: deviceOnline ? servoStatus[1] : false, rot: rotations[1], shake: shakes[1] },
+    { id: 3, name: "Servo C", percent: servos[2], online: deviceOnline ? servoStatus[2] : false, rot: rotations[2], shake: shakes[2] },
   ];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
       {isLoading && loadingOverlay()}
 
-      {/* HEADER */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 20,
-          padding: 20,
-          paddingTop: 10,
-          borderBottomWidth: 1,
-          borderColor: "rgba(255,255,255,0.1)",
-        }}
-      >
+      <View style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        padding: 20,
+        paddingTop: 10,
+        borderBottomWidth: 1,
+        borderColor: "rgba(255,255,255,0.1)",
+      }}>
         <Image source={logo} style={{ width: 50, height: 50 }} />
-        <Text
-          style={{
+
+        <View style={{ marginLeft: 12 }}>
+          <Text style={{
             fontSize: 22,
             fontWeight: "800",
             color: "#e8eefc",
-            marginLeft: 12,
-          }}
-        >
-          Servo Dashboard
-        </Text>
+          }}>
+            Servo Dashboard
+          </Text>
+
+          <Text style={{
+            color: deviceOnline ? "#34d399" : "#fb7185",
+            fontSize: 12
+          }}>
+            {deviceOnline ? "🟢 DEVICE ONLINE" : "🔴 DEVICE OFFLINE"}
+          </Text>
+        </View>
       </View>
 
       <FlatList
         data={servoData}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ padding: 16 }}
-        renderItem={({ item, index }) => {
+        renderItem={({ item }) => {
           const status = getStatus(item.percent, item.online);
 
           const rotate = item.rot.interpolate({
@@ -200,96 +240,73 @@ const DevicesTab = () => {
           });
 
           return (
-            <View
-              style={{
-                backgroundColor: "rgba(255,255,255,0.05)",
-                borderRadius: 40,
-                padding: 16,
-                marginBottom: 25,
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.1)",
-              }}
-            >
+            <View style={{
+              backgroundColor: "rgba(255,255,255,0.05)",
+              borderRadius: 40,
+              padding: 16,
+              marginBottom: 25,
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.1)",
+            }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                {/* LEFT */}
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Animated.View
-                    style={{
-                      transform: [
-                        { rotate },
-                        { translateX: item.shake }
-                      ],
-                    }}
-                  >
+                  <Animated.View style={{
+                    transform: [
+                      { rotate },
+                      { translateX: item.shake }
+                    ],
+                  }}>
                     <MaterialCommunityIcons name="cogs" size={24} color="#5eead4" />
                   </Animated.View>
 
-                  <Text
-                    style={{
-                      marginLeft: 10,
-                      color: "#e8eefc",
-                      fontSize: 16,
-                      fontWeight: "700",
-                    }}
-                  >
+                  <Text style={{
+                    marginLeft: 10,
+                    color: "#e8eefc",
+                    fontSize: 16,
+                    fontWeight: "700",
+                  }}>
                     {item.name}
                   </Text>
                 </View>
 
-                {/* RIGHT */}
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text
-                    style={{
-                      color: status.color,
-                      fontWeight: "700",
-                      marginRight: 6,
-                    }}
-                  >
+                  <Text style={{
+                    color: status.color,
+                    fontWeight: "700",
+                    marginRight: 6,
+                  }}>
                     {status.label}
                   </Text>
 
-                  {/* ✅ ANIMATED INDICATOR */}
-                  <Animated.Text style={{ opacity: indicatorAnim[index] }}>
+                  <Animated.Text style={{ opacity: indicatorAnim[item.id - 1] }}>
                     {item.online ? "🟢" : "🔴"}
                   </Animated.Text>
                 </View>
               </View>
 
-              <Text
-                style={{
-                  color: "#aab7df",
-                  marginTop: 10,
-                }}
-              >
+              <Text style={{ color: "#aab7df", marginTop: 10 }}>
                 {item.percent}% Durability
               </Text>
 
-              {/* PROGRESS BAR */}
-              <View
-                style={{
-                  height: 10,
-                  backgroundColor: "rgba(255,255,255,0.1)",
-                  borderRadius: 999,
-                  marginTop: 8,
-                  overflow: "hidden",
-                }}
-              >
-                <View
-                  style={{
-                    width: `${item.percent}%`,
-                    height: "100%",
-                    backgroundColor: "#5eead4",
-                  }}
-                />
+              <View style={{
+                height: 10,
+                backgroundColor: "rgba(255,255,255,0.1)",
+                borderRadius: 999,
+                marginTop: 8,
+                overflow: "hidden",
+              }}>
+                <View style={{
+                  width: `${item.percent}%`,
+                  height: "100%",
+                  backgroundColor: "#5eead4",
+                }} />
               </View>
 
-              <Text
-                style={{
-                  color: "#aab7df",
-                  marginTop: 8,
-                  fontSize: 12,
-                }}
-              >
+              <Text style={{
+                color: "#aab7df",
+                marginTop: 8,
+                fontSize: 12,
+              }}>
                 {item.online ? "Servo Online" : "Servo Offline"}
               </Text>
             </View>

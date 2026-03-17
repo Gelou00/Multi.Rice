@@ -4,23 +4,28 @@ import dns from 'node:dns';
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 export const dbConnection = async () => {
-    try{
-        await mongoose.connect(process.env.DB_ACCESS);
+  try {
+    const uri = process.env.MONGO_URI;
 
-        
-    }catch(error){
-        console.error("Error: "+error.message);
-        process.exit(1);
+    console.log("DB URI exists:", !!uri);
+
+    if (!uri) {
+      throw new Error("MONGO_URI is missing in environment variables");
     }
-    mongoose.connection.on("connected", ()=>{
-        console.log("Connected to database successfully!");
-    });
 
-    mongoose.connection.on("error", (err)=>{
-        console.error("Error while connecting to database!"+err.message);
-    });
+    await mongoose.connect(uri);
 
-    mongoose.connection.on("disconnected", ()=>{
-        console.error("MongoDB disconnected!");
-    });
-}
+    console.log("Connected to database successfully!");
+  } catch (error) {
+    console.error("Error: " + error.message);
+    throw error;
+  }
+
+  mongoose.connection.on("error", (err) => {
+    console.error("Error while connecting to database! " + err.message);
+  });
+
+  mongoose.connection.on("disconnected", () => {
+    console.error("MongoDB disconnected!");
+  });
+};

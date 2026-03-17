@@ -27,7 +27,7 @@ const EventSchema = new mongoose.Schema({
     owner:{
         type: mongoose.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false
     },
 
     // ===== ✅ ESP32 DATA =====
