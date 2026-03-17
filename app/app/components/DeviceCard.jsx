@@ -56,14 +56,14 @@ const DeviceCard = ({ device, pressEventHandler }) => {
       {/* FIELD 1 */}
       <View className="mx-2 mt-2 border border-yellow-600 rounded-xl bg-black">
         <Text className="text-lg font-bold text-yellow-400 mx-3 my-2">
-          Ultrasonic 1
+          Servo 1
         </Text>
         <View className="flex-row">
           <MetricCard
-            title="Rice Level"
-            value={cmToPercent(device.ultrasonic1)}
+            title="Durability"
+            value={cmToPercent(device.servo1)}
             unit="%"
-            iconName="rice"
+            iconName="servo"
           />
         </View>
       </View>
@@ -71,14 +71,14 @@ const DeviceCard = ({ device, pressEventHandler }) => {
       {/* FIELD 2 */}
       <View className="mx-2 mt-3 border border-yellow-600 rounded-xl bg-black">
         <Text className="text-lg font-bold text-yellow-400 mx-3 my-2">
-          Ultrasonic 2
+          Servo 2
         </Text>
         <View className="flex-row">
           <MetricCard
-            title="Rice Level"
-            value={cmToPercent(device.ultrasonic2)}
+            title="Durability"
+            value={cmToPercent(device.servo2)}
             unit="%"
-            iconName="rice"
+            iconName="servo"
           />
         </View>
       </View>
@@ -86,14 +86,14 @@ const DeviceCard = ({ device, pressEventHandler }) => {
       {/* FIELD 3 */}
       <View className="mx-2 mt-3 border border-yellow-600 rounded-xl bg-black">
         <Text className="text-lg font-bold text-yellow-400 mx-3 my-2">
-          Ultrasonic 3
+          Servo 3
         </Text>
         <View className="flex-row">
           <MetricCard
-            title="Rice Level"
-            value={cmToPercent(device.ultrasonic3)}
+            title="Durability"
+            value={cmToPercent(device.servo3)}
             unit="%"
-            iconName="rice"
+            iconName="servo"
           />
         </View>
       </View>

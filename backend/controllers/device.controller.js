@@ -144,84 +144,84 @@ export const updateDevice = async(req, res)=>{
 }
 
 
-export const deviceOnline = async(req, res) =>{
-    if(!req.body){
-        return res.status(400).json({success: false, message: "Invalid values!"});
+export const deviceOnline = async (req, res) => {
+    if (!req.body) {
+        return res.status(400).json({ success: false, message: "Invalid values!" });
     }
 
-    const deviceID =  req.body.deviceID;
-    var temperature= req.body.temperature;
-    var humidity=req.body.humidity;
-    var reservoirLevel=req.body.reservoirLevel;
-    var soilMoisture1=req.body.soilMoisture1;
-    var soilMoisture2=req.body.soilMoisture2;
-    var soilMoisture3=req.body.soilMoisture3;
-    const waterLevel1=req.body.waterLevel1;
-    const waterLevel2=req.body.waterLevel2;
-    const waterLevel3=req.body.waterLevel3;
-    
-    if(!deviceID){
-        return res.status(200).json({success: false, message: "Invalid Device ID!"});
+    const deviceID = req.body.deviceID;
+
+    if (!deviceID) {
+        return res.status(200).json({ success: false, message: "Invalid Device ID!" });
     }
 
-    if(!temperature){
-        temperature=0;
-    }
+    const container1 = req.body.container1 || 0;
+    const container2 = req.body.container2 || 0;
+    const container3 = req.body.container3 || 0;
 
-    if(!humidity){
-        humidity=0;
-    }
-
-    if(!reservoirLevel){
-        reservoirLevel='LOW';
-    }
-
-    if(typeof soilMoisture1 !== "boolean"){
-        soilMoisture1=false;
-    }
-
-    if(typeof soilMoisture2 !== "boolean"){
-        soilMoisture2=false;
-    }
-
-    if(typeof soilMoisture3 !== "boolean"){
-        soilMoisture3=false;
-    }
+    const servo1Durability = req.body.servo1Durability || 100;
+    const servo2Durability = req.body.servo2Durability || 100;
+    const servo3Durability = req.body.servo3Durability || 100;
 
     const session = await mongoose.startSession();
-    try{
-        const result = await Device.find({deviceID});
-        if(!result){
-            res.status(500).json({success: false, message:"Device Not found!"});    
-        }else{
-            session.startTransaction();
 
-            const device=result[0];
-            device.isOnline = true;
-            device.lastUpdate=Date.now();
-            device.temperature=temperature;
-            device.humidity=humidity;
-            device.reservoirLevel=reservoirLevel;
-            device.soilMoisture1=soilMoisture1;
-            device.soilMoisture2=soilMoisture2;
-            device.soilMoisture3=soilMoisture3;
-            device.waterLevel1=waterLevel1;
-            device.waterLevel2=waterLevel2;
-            device.waterLevel3=waterLevel3;
+    try {
 
-            const updatedDevice = await Device.findByIdAndUpdate(device._id, device, {runValidators: true, new: true, session});
-            await session.commitTransaction();
+        const device = await Device.findOne({ deviceID });
 
-            res.status(200).json({success: true, data: [updatedDevice]});
+        if (!device) {
+            return res.status(404).json({
+                success: false,
+                message: "Device not registered"
+            });
         }
-    }catch(error){
+
+        session.startTransaction();
+
+        device.isOnline = true;
+        device.lastUpdate = Date.now();
+
+        // container level tab
+        device.container1 = container1;
+        device.container2 = container2;
+        device.container3 = container3;
+
+        // device tab
+        device.servo1Durability = servo1Durability;
+        device.servo2Durability = servo2Durability;
+        device.servo3Durability = servo3Durability;
+
+        const updatedDevice = await Device.findByIdAndUpdate(
+            device._id,
+            device,
+            { runValidators: true, new: true, session }
+        );
+
+        await session.commitTransaction();
+
+        res.status(200).json({
+            success: true,
+            data: [updatedDevice]
+        });
+
+    } catch (error) {
+
+        await session.abortTransaction();
         console.log(error.message);
-        res.status(500).json({success: false, message:"Server Error"});
-    }finally{
+
+        res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+
+    } finally {
+
         await session.endSession();
+
     }
-    
+
     return res;
+
 }
 
 export const getADevice = async(req, res) =>{

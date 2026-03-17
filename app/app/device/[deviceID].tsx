@@ -167,7 +167,7 @@ const DeviceDetails = () => {
             </Text>
             <View className="flex-row">
               <MetricCard
-                title="Rice Level"
+                title="Servo Usage"
                 value={cmToPercent(device.servomotor1)}
                 unit="%"
                 iconName="servo"
@@ -183,7 +183,7 @@ const DeviceDetails = () => {
             </Text>
             <View className="flex-row">
               <MetricCard
-                title="Rice Level"
+                title="Servo Usage"
                 value={cmToPercent(device.servomotor2)}
                 unit="%"
                 iconName="servo"
@@ -199,7 +199,7 @@ const DeviceDetails = () => {
             </Text>
             <View className="flex-row">
               <MetricCard
-                title="Rice Level"
+                title="Servo Usage"
                 value={cmToPercent(device.servomotor3)}
                 unit="%"
                 iconName="servo"
