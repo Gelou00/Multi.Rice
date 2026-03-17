@@ -38,6 +38,10 @@ app.use("/api/device", deviceRouter);
 app.use("/api/user", userRouter);
 app.use("/api/event", eventRouter);
 
+app.get("/healthz", (req, res) => {
+  res.status(200).send("OK");
+});
+
 app.get("/", (req, res) => {
   res.json({ message: "Server is working!" });
 });
