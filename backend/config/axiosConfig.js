@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'https://phil-location.onrender.com/api',
-  withCredentials: false,
+  baseURL: 'http://192.168.1.5:5000/api',
 });
 
 export default axiosInstance;
