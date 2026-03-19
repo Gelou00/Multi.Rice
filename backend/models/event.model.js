@@ -50,6 +50,28 @@ const EventSchema = new mongoose.Schema({
     servoStatus:{
         type: [Boolean],
         default: [false,false,false]
+    },
+
+    // ===== ✅ PHASE 1 SERVO DURABILITY DATA =====
+
+    servoCycles:{
+        type: [Number],
+        default: [0,0,0]
+    },
+
+    servoMoveTimeMs:{
+        type: [Number],
+        default: [0,0,0]
+    },
+
+    servoExtremeHits:{
+        type: [Number],
+        default: [0,0,0]
+    },
+
+    servoInstallDays:{
+        type: [Number],
+        default: [0,0,0]
     }
 
 });
